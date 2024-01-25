@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POTHOLE PATROL</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-TI+U2FS3DDG9PJ6pzoj1z7sFDVadZx8AlCjLlEhG/WPvaIkweew6taL8TImQMYbX" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" integrity="sha384-lRVJY8hjTzYUKiA2a9cHmqqhZe4rUfkJduSWxu81aPzIwG7o9W6FzqOCfkt6XmOt" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-TI+U2FS3DDG9PJ6pzoj1z7sFDVadZx8AlCjLlEhG/WPvaIkweew6taL8TImQMYbX" crossorigin="anonymous">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" integrity="sha384-lRVJY8hjTzYUKiA2a9cHmqqhZe4rUfkJduSWxu81aPzIwG7o9W6FzqOCfkt6XmOt" crossorigin="anonymous">
+  <style>
+    body {
+      padding: 20px;
+    }
+
+    #map-container {
+      height: 500px;
+    }
+
+    #total-issues {
+      background-color: #007bff;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    #issue-count {
+      font-size: 24px;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+
+    #location-form-container {
+      margin-top: 20px;
+    }
+
+    #location-form-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #8f9595;
+    }
+
+    #location-form {
+      max-width: 800px;
+      width: 100%;
+      padding: 30px;
+      border: 2px solid #000000;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+      background-color: white;
+    }
+
+    .form-group {
+      margin-bottom: 30px;
+    }
+
+    label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      border: 1px solid #007bff;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+      border: 1px solid #0056b3;
+    }
+
+    .btn-primary:focus {
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5);
+    }
+
+    .btn-primary i {
+      margin-right: 10px;
+    }
+
+    @media (max-width: 576px) {
+      #location-form {
+        padding: 20px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2 class="mt-4 mb-4">POTHOLE PATROL</h2>
+
+  <div id="map-container" class="mb-4"></div>
+  <div id="total-issues" class="mb-2">Total Issues: <span id="issue-count">0</span></div>
+
+  <div id="location-form-container" class="container mt-4 d-flex justify-content-center align-items-center">
+    <form id="location-form">
+      <div class="form-group">
+        <label for="longitude">Longitude:</label>
+        <input type="text" class="form-control" id="longitude" name="longitude" placeholder="Enter longitude" required>
+      </div>
+      <div class="form-group">
+        <label for="latitude">Latitude:</label>
+        <input type="text" class="form-control" id="latitude" name="latitude" placeholder="Enter latitude" required>
+      </div>
+      <button type="button" class="btn btn-primary btn-block" onclick="checkLocation()">
+        <i class="fas fa-map-marker-alt"></i> Check Location
+      </button>
+    </form>
+  </div> 
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.0.8/dist/umd/popper.min.js" integrity="sha384-0pUspXk3Sk5IkQkI2tLqzlNPIqp5rTQqqRO/+PIvMRZdAhoyv09ExBbj27iZrE4" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-Qf8KT6DxS1L6tfKt7I5nlls6Y43vd2MI9C5bJebYoKTNAWSp76V/IShYG8dZkBe5" crossorigin="anonymous"></script>
+
+<script>
+  var map = L.map('map-container').setView([0, 0], 2);
+  var totalIssues = 0;
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  var issueCoordinatesArray = {{ data | tojson | safe }};
+
+  for (var i = 0; i < issueCoordinatesArray.length; i++) {
+    var issue = issueCoordinatesArray[i];
+
+    var marker = L.marker(issue.coordinates).addTo(map);
+
+    marker.bindPopup(`
+      <div class="card" style="width: 18rem;">
+        <div class="card-body">
+          <h5 class="card-title">${issue.issue_type}</h5>
+          <p class="card-text">Coordinates: ${issue.coordinates.join(', ')}</p>
+          <i class="fas fa-${issue.icon}"></i>
+        </div>
+      </div>
+    `);
+
+    totalIssues++;
+  }
+
+  document.getElementById('issue-count').innerText = totalIssues;
+
+  function checkLocation() {
+    var enteredLongitude = parseFloat(document.getElementById('longitude').value);
+    var enteredLatitude = parseFloat(document.getElementById('latitude').value);
+
+    for (var i = 0; i < issueCoordinatesArray.length; i++) {
+      var issue = issueCoordinatesArray[i];
+      if (issue.coordinates[0] === enteredLongitude && issue.coordinates[1] === enteredLatitude) {
+        displayMessage(issue);
+        return;
+      }
+    }
+
+    alert('Location not found.');
+  }
+
+  
+  function displayMessage(issue) {
+    var message = `Entering a ${issue.issue_type} zone. `;
+
+    alert(message);
+  }
+</script>
+
+</body>
+</html>
